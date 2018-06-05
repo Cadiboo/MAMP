@@ -1,5 +1,5 @@
 <?php
-require $_SERVER['DOCUMENT_ROOT']."/resource/config.php";
+require $_SERVER['DOCUMENT_ROOT']."/../htresources/config.php";
 // @session_start();
 
 // Create connection

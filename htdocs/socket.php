@@ -7,11 +7,12 @@ if(empty($_SERVER['SHELL'])) {
 set_time_limit(0);
 
 if(!isset($_SERVER['DOCUMENT_ROOT']) || empty($_SERVER['DOCUMENT_ROOT']))
-  $_SERVER['DOCUMENT_ROOT'] = explode("htdocs", $_SERVER['PHP_SELF'])[0]."htdocs";
+  $_SERVER['DOCUMENT_ROOT'] = explode("ht", $_SERVER['PHP_SELF'])[0]."htdocs";
 
-require $_SERVER['DOCUMENT_ROOT']."/resource/login.php";
+require $_SERVER['DOCUMENT_ROOT']."/../htresources/login.php";
+require $_SERVER['DOCUMENT_ROOT']."/../htresources/bootstrap.php";
 // include the web sockets server script (the server is started at the far bottom of this file)
-require $_SERVER['DOCUMENT_ROOT']."/resource/class.PHPWebSocket.php";
+require $_SERVER['DOCUMENT_ROOT']."/../htresources/class.PHPWebSocket.php";
 
 function createPacket($type, $message) {
   $json = new StdClass();
@@ -56,8 +57,6 @@ function verify(&$Server, &$clientID) {
 function wsOnMessage($clientID, $message, $messageLength, $binary) {
 	global $Server;
 
-  verify($Server, $clientID);
-
 	if ($messageLength == 0) {
 		return;
 	}
@@ -67,11 +66,31 @@ function wsOnMessage($clientID, $message, $messageLength, $binary) {
   $packet = json_decode($message);
   if(!$packet) {
     $Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet: ".$message));
+    verify($Server, $clientID);
     return;
   }
+
+  switch($packet->type) {
+    case PACKET_TYPE_REQUEST_BOOTSTRAP:
+    case PACKET_TYPE_REQUEST_HTML:
+    case PACKET_TYPE_REQUEST_CSS:
+      break;
+    default:
+      verify($Server, $clientID);
+  }
+
   switch($packet->type) {
     case PACKET_TYPE_ERROR:
       $Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Error packet: ".$message));
+      break;
+    case PACKET_TYPE_REQUEST_BOOTSTRAP:
+      $Server->wsSend($clientID, createPacket(PACKET_TYPE_BOOTSTRAP, loadBootstrap()));
+      break;
+    case PACKET_TYPE_REQUEST_HTML:
+    $Server->wsSend($clientID, createPacket(PACKET_TYPE_HTML, loadHTML()));
+      break;
+    case PACKET_TYPE_REQUEST_CSS:
+    $Server->wsSend($clientID, createPacket(PACKET_TYPE_CSS, loadCSS()));
       break;
     case PACKET_TYPE_SIGNUP:
       $Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Signup packet: ".$message));
