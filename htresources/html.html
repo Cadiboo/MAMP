@@ -4,34 +4,34 @@ yeet
 </body>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Sign Up</title>
+		<meta charset="UTF-8">
+		<title>Sign Up</title>
 </head>
 <body>
-    <div class="wrapper">
-        <h2>Sign Up</h2>
-        <form id="signup_form" onsubmit="return false;" action="/signup/" method="post">
-            <div id="username_holder">
-                <label>Username</label>
-                <input type="text" name="username"class="form-control" value="<?php echo $username; ?>">
-                <span id="username_error"></span>
-            </div>
-            <div id="password_holder">
-                <label>Password</label>
-                <input type="password" name="password" class="form-control" value="<?php echo $password; ?>">
-                <span id="password_error"></span>
-            </div>
-            <div id="confirm_password_holder">
-                <label>Confirm Password</label>
-                <input type="password" name="confirm_password" class="form-control" value="<?php echo $confirm_password; ?>">
-                <span id="confirm_password_error"></span>
-            </div>
-            <div id="submit_holder">
-                <input type="submit" id="submit" value="Submit">
-                <input type="reset" id="reset" value="Reset">
-            </div>
-            <p>Already have an account? <a href="/login/">Login here</a>.</p>
-        </form>
-    </div>
+		<div class="wrapper">
+				<h2>Sign Up</h2>
+				<form id="signup_form" onsubmit="return false;" action="/signup/" method="post">
+						<div id="username_holder">
+								<label>Username</label>
+								<input type="text" name="username"class="form-control" value="<?php echo $username; ?>">
+								<span id="username_error"></span>
+						</div>
+						<div id="password_holder">
+								<label>Password</label>
+								<input type="password" name="password" class="form-control" value="<?php echo $password; ?>">
+								<span id="password_error"></span>
+						</div>
+						<div id="confirm_password_holder">
+								<label>Confirm Password</label>
+								<input type="password" name="confirm_password" class="form-control" value="<?php echo $confirm_password; ?>">
+								<span id="confirm_password_error"></span>
+						</div>
+						<div id="submit_holder">
+								<input type="submit" id="submit" value="Submit">
+								<input type="reset" id="reset" value="Reset">
+						</div>
+						<p>Already have an account? <a href="/login/">Login here</a>.</p>
+				</form>
+		</div>
 </body>
 </html>

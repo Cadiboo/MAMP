@@ -117,7 +117,7 @@ function handlePacket(pkt) {
 			break;
 		case TYPES.CSS:
 			localStorage.css=packet.data;
-			localStorage.cssVersion = localStorage.css.split("version=\"")[1].split("\"")[0]
+			localStorage.cssVersion = localStorage.css.split("version=\"")[1].split("\"")
 			console.log("Recieved CSS update "+localStorage.cssVersion);
 			break;
 		case TYPES.REQUEST_CSS:
