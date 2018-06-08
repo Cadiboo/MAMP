@@ -33,29 +33,35 @@ function decrypt(ciphertext) {
 	return ciphertext; //window.atob(decodeURIComponent(ciphertext));
 }
 
+function getQuedPackets() {
+	if(localStorage.quedPackets == undefined || !JSON.parse(localStorage.quedPackets)) {
+		localStorage.quedPackets = JSON.stringify([]);
+	}
+	return JSON.parse(localStorage.quedPackets);
+}
+
+function setQuedPackets(quedPackets) {
+	localStorage.quedPackets = JSON.stringify(quedPackets);
+}
+
 window.socket = null;
 function socketDaemon() {
-	console.log(socket);
 	if(!socket || !socket.readyState || socket.readyState!=1) {
 		socket = new WebSocket("ws:"+document.location.hostname+":<?PHP echo SOCKET_PORT; ?>/socket.php");
-		if(!localStorage.quedPackets || localStorage.quedPackets=="undefined") {
-			localStorage.quedPackets = JSON.stringify([]);
-		}
 		socket.sendPackets = function() {
-			var quedPackets = JSON.parse(localStorage.quedPackets);
-			var size = quedPackets.length;
-			for(i=0; i<size; i++) {
+			var quedPackets = getQuedPackets();
+			for(i=0; i<quedPackets.length; i++) {
 				if(socket.readyState==1)
 					socket.send(quedPackets.shift());
 			}
-			localStorage.quedPackets = JSON.stringify(quedPackets);
+			setQuedPackets(quedPackets);
 		}
 
 		socket.quePacket = function(packet) {
 			if(packet !== undefined) {
-				var quedPackets = JSON.parse(localStorage.quedPackets);
+				var quedPackets = getQuedPackets();
 				quedPackets.push(packet);
-				localStorage.quedPackets = JSON.stringify(quedPackets);
+				setQuedPackets(quedPackets);
 			}
 		}
 

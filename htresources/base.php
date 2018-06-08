@@ -1,26 +1,43 @@
 <?PHP
 require $_SERVER['DOCUMENT_ROOT']."/../htresources/config.php";
-
-// localStorage.bootstrap= "null";
-// localStorage.html = "null";
-// localStorage.css = "null";
-// localStorage.bootstrapVersion = "null";
-// localStorage.htmlVersion			= "null";
-// localStorage.cssVersion			 = "null";
+// localStorage.clear();
 ?>
 <script id="init">
 
-// function verifyBootstraps() {
-//	 console.log(!!localStorage.bootstrap &&
-//	 !!localStorage.bootstrapVersion);
-//	 return
-//	 localStorage.bootstrap &&
-//	 localStorage.bootstrapVersion /*&&
-//	 !!localStorage.html &&
-//	 !!localStorage.htmlVersion &&
-//	 !!localStorage.css &&
-//	 !!localStorage.cssVersion*/;
-// }
+window.addEventListener('error', function (error) {
+	reportError(error);
+});
+
+function reportError(error) {
+	// var string = error.message.toLowerCase();
+	// var substring = "script error";
+	// if (string.indexOf(substring) > -1){
+	// 	console.warn('Script Error: See Browser Console for Detail');
+	// } else {
+		console.warn(error);
+		fetch("/errors.php",
+			{
+				method: 'POST',
+				body: "error="+JSON.stringify({
+					message: error.message,
+					stack: error.error.stack,
+					line: error.lineno,
+					column: error.colno,
+					srcElement: error.srcElement.constructor.name,
+					target: error.target.constructor.name,
+					returnValue: error.returnValue,
+					timeStamp: error.timeStamp,
+					type: error.type,
+				}),
+				headers:{
+					'Content-Type': 'application/x-www-form-urlencoded' //otherwist $_REQUEST is empty
+				}
+			}
+		).then(response => response.text())
+		.catch(error => console.error('Error:', error))
+		.then(response => console.log('Successfuly reported error:', response));
+	// }
+}
 
 function hex(buffer) {
 	var hexCodes = [];
@@ -64,9 +81,9 @@ if(!verifyBootstraps()) {
 	}
 	initialSocket.tryClose = function () {
 		if(verifyBootstraps()) {
-			console.log("tryclose");
-			// initialSocket.close();
-			// delete initialSocket;
+			// console.log("tryclose");
+			initialSocket.close();
+			delete initialSocket;
 		}
 	}
 	initialSocket.onmessage = function (event) {
@@ -88,6 +105,9 @@ if(!verifyBootstraps()) {
 			// 	break;
 		}
 		initialSocket.tryClose();
+	}
+	initialSocket.onerror = function (error) {
+		reportError(error);
 	}
 } else {
 	var script = document.createElement('script');

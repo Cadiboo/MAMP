@@ -166,27 +166,13 @@ function respondToResponse($clientID, $type, $hash) {
 			error_log("respondToResponse called with invalid packet type!");
 			return;
 	}
-
-
-	// if ($hash != $data) {
 	if ($hash != utf8_encode(hash('sha256', $data))) {
-	// if (utf8_encode(hash('sha256', $hash)) != utf8_encode(hash('sha256', $data))) {
 		$Server->wsSend($clientID, createPacket($type, $data));
-		// var_dump($data);
-		// echo "\n";
-		// var_dump($hash);
-		// echo "\n";
-		// echo utf8_encode(hash('sha256', $hash))."\n";
-		// echo utf8_encode(hash('sha256', $data))."\n";
-		// echo time()."\n";
-		// die();
-	}
-	//TESTING CAUSE IT _WORKS!!!!_
-	else {
+	} else {
+		//TESTING CAUSE IT _WORKS!!!!_
 		$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Your hash ($hash) is the same as our hash (".utf8_encode(hash('sha256', $data)).")!!!"));
 		$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Why am I even fucking with versions if I can use this???"));
 	}
-
 }
 
 // when a client connects
