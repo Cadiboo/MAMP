@@ -168,10 +168,10 @@ function respondToResponse($clientID, $type, $hash) {
 	}
 	if ($hash != utf8_encode(hash('sha256', $data))) {
 		$Server->wsSend($clientID, createPacket($type, $data));
-	} else {
-		//TESTING CAUSE IT _WORKS!!!!_
-		$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Your hash ($hash) is the same as our hash (".utf8_encode(hash('sha256', $data)).")!!!"));
-		$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Why am I even fucking with versions if I can use this???"));
+	// } else {
+	// 	//TESTING CAUSE IT _WORKS!!!!_
+	// 	$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Your hash ($hash) is the same as our hash (".utf8_encode(hash('sha256', $data)).")!!!"));
+	// 	$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Why am I even fucking with versions if I can use this???"));
 	}
 }
 
