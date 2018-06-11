@@ -18,6 +18,9 @@ const TYPES = new Object({
 	,BOOTSTRAP: <?PHP echo PACKET_TYPE_BOOTSTRAP;?>
 	,HTML: <?PHP echo PACKET_TYPE_HTML;?>
 	,CSS: <?PHP echo PACKET_TYPE_CSS;?>
+	,PAGE_SCRIPT: <?PHP echo PACKET_TYPE_PAGE_SCRIPT;?>
+	,PAGE_HTML: <?PHP echo PACKET_TYPE_PAGE_HTML;?>
+	,PAGE_CSS: <?PHP echo PACKET_TYPE_PAGE_CSS;?>
 	,SIGNUP: <?PHP echo PACKET_TYPE_SIGNUP;?>
 	,LOGIN: <?PHP echo PACKET_TYPE_LOGIN;?>
 	,NORMAL: <?PHP echo PACKET_TYPE_NORMAL;?>
@@ -84,7 +87,12 @@ function socketDaemon() {
 		socket.addEventListener("message", function(msg) {
 			document.body.appendChild(document.createTextNode("msg.data: "+msg.data));
 			document.body.appendChild(document.createElement("br"));
-			handlePacket(decrypt(msg.data));
+			try {
+				JSON.parse(msg.data);
+				handlePacket(msg.data);
+			} catch (e) {
+				handlePacket(decrypt(msg.data));
+			}
 		});
 
 		socket.addEventListener("close", function(event) {
@@ -116,6 +124,8 @@ function updateBootstraps() {
 
 function handlePacket(pkt) {
 	var packet = JSON.parse(pkt);
+	console.log(pkt);
+	console.log(packet);
 	switch (packet.type) {
 		case TYPES.ERROR:
 			handleError(packet.data);
@@ -193,12 +203,23 @@ function handleError(error) {
 	}
 }
 
-function createPacket(type, data) {
+function createPacket(type, data, plaintext) {
 	if(data === undefined)
 		data = "";
-	return JSON.stringify({type: type, data: data});
+	return JSON.stringify(plaintext === true?{type: type, data: data, plaintext: true}:{type: type, data: data});
 }
 
+function loadHTML(html) {
+	document.body.innerHTML = html;
+}
+
+function loadSignupHTML() {
+	document.body.innerHTML = `signup`;
+}
+
+function loadLoginHTML() {
+	document.body.innerHTML = `login`;
+}
 
 document.addEventListener("DOMContentLoaded", function(event) {
 		// console.error('Ignore WebSocket Errors like "Broken pipe" or "Connection reset by peer", they\'re expected errors likely due to my abrupt closing of the connection')

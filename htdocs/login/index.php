@@ -1,10 +1,13 @@
 <?PHP
-require $_SERVER['DOCUMENT_ROOT']."/resource/base.php";
+require $_SERVER['DOCUMENT_ROOT']."/../htresources/base.php";
 ?>
+<SCRIPT>
+loadLoginHTML();
+</SCRIPT>
 
 
 <?php
-
+exit;
 // Define variables and initialize with empty values
 $username = $password = $confirm_password = "";
 $username_err = $password_err = $confirm_password_err = "";

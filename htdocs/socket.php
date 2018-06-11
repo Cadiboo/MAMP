@@ -212,7 +212,7 @@ function wsOnClose($clientID, $status) {
 }
 
 function wsOnSend($clientID, &$message, $binary) {
-	if(!json_decode($message)->plaintext)
+	if(@(!json_decode($message)->plaintext))
 		encrypt($message);
 }
 

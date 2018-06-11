@@ -26,7 +26,7 @@ function reportError(error) {
 				method: 'POST',
 				body: "error="+JSON.stringify({
 					message: (error.message?error.message:"undefined"),
-					stack: (error.error.stack?error.error.stack:"undefined"),
+						stack: (error.error?(error.error.stack?error.error.stack:"undefined"):"undefined"),
 					line: (error.lineno?error.lineno:"undefined"),
 					column: (error.colno?error.colno:"undefined"),
 					srcElement: (error.srcElement.constructor.name?error.srcElement.constructor.name:"undefined"),
@@ -84,6 +84,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 });
 
 if(!verifyBootstraps()) {
+	socket = null;
 	initialSocket = new WebSocket("ws:"+document.location.hostname+":<?PHP echo SOCKET_PORT; ?>/socket.php");
 	initialSocket.onopen = function (event) {
 		initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_REQUEST_BOOTSTRAP; ?>, data: (localStorage.bootstrapVersion !== undefined?localStorage.bootstrapVersion:""), plaintext: true}));
