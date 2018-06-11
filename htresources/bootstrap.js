@@ -1,3 +1,6 @@
+<?php
+require $_SERVER['DOCUMENT_ROOT']."/../htresources/config.php";
+?>
 /* Hacks to make better For Loops */
 HTMLCollection.prototype.forEach = Array.prototype.forEach;
 NodeList.prototype.forEach = Array.prototype.forEach;
@@ -27,10 +30,13 @@ const ERRORS = new Object({
 });
 
 function encrypt(plaintext) {
-	return plaintext; //encodeURIComponent(window.btoa(plaintext));
+	return encodeURIComponent(window.btoa(plaintext));
+	// return plaintext;
 }
+
 function decrypt(ciphertext) {
-	return ciphertext; //window.atob(decodeURIComponent(ciphertext));
+	return window.atob(decodeURIComponent(ciphertext));
+	// return ciphertext
 }
 
 function getQuedPackets() {
@@ -81,12 +87,23 @@ function socketDaemon() {
 			handlePacket(decrypt(msg.data));
 		});
 
-		socket.addEventListener("close", function(event){
+		socket.addEventListener("close", function(event) {
+			handleConnectivity();
 		});
 
-		socket.addEventListener("error", function(event){
+		socket.addEventListener("error", function(error) {
+			reportError(error);
 		});
+	}
+}
 
+function handleConnectivity() {
+	if(!socket || socket.readyState>1) {
+		var span = document.createElement('span');
+	  span.appendChild(document.createTextNode("OFFLINE!"));
+  	span.style.color = "red";
+		document.body.appendChild(span);
+		document.body.appendChild(document.createElement("br"));
 	}
 }
 
@@ -104,27 +121,34 @@ function handlePacket(pkt) {
 			handleError(packet.data);
 			break;
 		case TYPES.BOOTSTRAP:
-			debugger;
+			var old = localStorage.bootstrap;
 			localStorage.bootstrap=packet.data;
 			eval(packet.data);
-			debugger;
 			console.log("Recieved Bootstrap update "+localStorage.bootstrapVersion);
+			if(old != undefined)
+				update(false);
 			break;
 		case TYPES.REQUEST_BOOTSTRAP:
 				crypto.subtle.digest("SHA-256", new TextEncoder("utf-8").encode(localStorage.bootstrap)).then((buffer)=>socket.send(JSON.stringify({type: TYPES.BOOTSTRAP, data: hex(buffer)})));
 			break;
 		case TYPES.HTML:
+			var old = localStorage.html;
 			localStorage.html=packet.data;
 			localStorage.htmlVersion = localStorage.html.split("version=\"")[1].split("\"")[0];
 			console.log("Recieved HTML update "+localStorage.htmlVersion);
+			if(old != undefined)
+				update(false);
 			break;
 		case TYPES.REQUEST_HTML:
 				crypto.subtle.digest("SHA-256", new TextEncoder("utf-8").encode(localStorage.html)).then((buffer)=>socket.send(JSON.stringify({type: TYPES.HTML, data: hex(buffer)})));
 			break;
 		case TYPES.CSS:
+			var old = localStorage.css;
 			localStorage.css=packet.data;
 			localStorage.cssVersion = localStorage.css.split("version=\"")[1].split("\"")[0]
 			console.log("Recieved CSS update "+localStorage.cssVersion);
+			if(old != undefined)
+				update(false);
 			break;
 		case TYPES.REQUEST_CSS:
 				crypto.subtle.digest("SHA-256", new TextEncoder("utf-8").encode(localStorage.css)).then((buffer)=>socket.send(JSON.stringify({type: TYPES.CSS, data: hex(buffer)})));
@@ -135,6 +159,16 @@ function handlePacket(pkt) {
 	}
 	document.body.appendChild(document.createTextNode("packet: "+JSON.stringify(packet)));
 	document.body.appendChild(document.createElement("br"));
+}
+
+function update(force=false) {
+	if(force) {
+		alert("Sucessfully Updated Application, A reload is required to use the application")
+		window.location.reload();
+	} else {
+		if(confirm("Sucessfully Updated Application. The Update will not come into effect until the page is reloaded. Reload now?"))
+			window.location.reload();
+	}
 }
 
 function handleError(error) {
@@ -171,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 	socketDaemon();
 	socketDaemonInterval = setInterval(()=>socketDaemon(), <?PHP echo SOCKET_RECONNECT_TIMEOUT;?>);
 	updateBootstraps();
-	updateBootstrapsInterval = setInterval(()=>updateBootstraps(), <?PHP echo SOCKET_RECONNECT_TIMEOUT;?>);
+	updateBootstrapsInterval = setInterval(()=>updateBootstraps(), <?PHP echo BOOTSTRAP_UPDATE_TIMEOUT;?>);
 });
 
 // function signup() {

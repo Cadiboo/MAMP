@@ -14,29 +14,21 @@ require $_SERVER['DOCUMENT_ROOT']."/../htresources/bootstrap.php";
 // include the web sockets server script (the server is started at the far bottom of this file)
 require $_SERVER['DOCUMENT_ROOT']."/../htresources/class.PHPWebSocket.php";
 
-function createPacket($type, $data) {
+function createPacket($type, $data, $plaintext=false) {
 	$json = new StdClass();
 	$json->type = $type;
 	$json->data = $data;
+	if($plaintext) {
+		$json->plaintext = true;
+	}
 	return json_encode($json);
-}
-
-//TESTING DONT FUCKING USE THIS FOR THE ACTUAL ENCRYPTION
-function encrypt(&$data) {
-	// $message = urlencode(base64_encode($message));
-	return $data;
-}
-
-function decrypt(&$data) {
-	// $message = base64_decode(urldecode($message));
-	return $data;
 }
 
 function verify(&$Server, &$clientID) {
 	return;
 	$session = $Server->wsClients[$clientID][PHPWebSocket::SESSION];
 	if(empty($session) || !login($session['username'], $session['password'])) {
-		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, empty($session)?ERROR_PACKET_DO_LOGIN:ERROR_PACKET_INVALID_LOGIN));
+		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, empty($session)?ERROR_PACKET_DO_LOGIN:ERROR_PACKET_INVALID_LOGIN), true);
 
 		//Load & destroy session
 		@session_start($Server->getSessionID($clientID));
@@ -53,6 +45,17 @@ function verify(&$Server, &$clientID) {
 	return true;
 }
 
+//TESTING DONT FUCKING USE THIS FOR THE ACTUAL ENCRYPTION
+function encrypt(&$data) {
+	$data = urlencode(base64_encode($data));
+	return $data;
+}
+
+function decrypt(&$data) {
+	$data = base64_decode(urldecode($data));
+	return $data;
+}
+
 // when a client sends data to the server
 function wsOnMessage($clientID, $message, $messageLength, $binary) {
 	global $Server;
@@ -61,36 +64,41 @@ function wsOnMessage($clientID, $message, $messageLength, $binary) {
 		return;
 	}
 
-	decrypt($message);
+	if(!json_decode($message))
+		decrypt($message);
 
 	$packet = json_decode($message);
 	if(!$packet) {
-		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet: ".$message));
+		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet: ".$message), false);
 		verify($Server, $clientID);
 		return;
 	}
 	if(!isset($packet->type)) {
-		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet - missing type: ".$message));
+		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet - missing type: ".$message), false);
 		verify($Server, $clientID);
 		return;
 	}
 	if(!isset($packet->data)) {
-		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet - missing data: ".$message));
+		$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Invalid packet - missing data: ".$message), false);
 		verify($Server, $clientID);
 		return;
+	}
+
+	if(!isset($packet->plaintext)) {
+		$packet->plaintext = false;
 	}
 
 	switch($packet->type) {
 		case PACKET_TYPE_REQUEST_BOOTSTRAP:
 		case PACKET_TYPE_REQUEST_HTML:
 		case PACKET_TYPE_REQUEST_CSS:
-			respondToRequest($clientID, $packet->type, $packet->data);
+			respondToRequest($clientID, $packet->type, $packet->data, $packet->plaintext);
 			return;
 			break;
 		case PACKET_TYPE_BOOTSTRAP:
 		case PACKET_TYPE_HTML:
 		case PACKET_TYPE_CSS:
-			respondToResponse($clientID, $packet->type, $packet->data);
+			respondToResponse($clientID, $packet->type, $packet->data, $packet->plaintext);
 			return;
 			break;
 		default:
@@ -99,19 +107,19 @@ function wsOnMessage($clientID, $message, $messageLength, $binary) {
 
 	switch($packet->type) {
 		case PACKET_TYPE_ERROR:
-			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Error packet: ".$message));
+			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Error packet: ".$message), $packet->plaintext);
 			break;
 		case PACKET_TYPE_SIGNUP:
-			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Signup packet: ".$message));
+			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Signup packet: ".$message), $packet->plaintext);
 			break;
 		case PACKET_TYPE_LOGIN:
-			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Login packet: ".$message));
+			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Login packet: ".$message), $packet->plaintext);
 			break;
 		case PACKET_TYPE_NORMAL:
-			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Normal packet: ".$message));
+			$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved Normal packet: ".$message), $packet->plaintext);
 			break;
 		default:
-			$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Recieved Unknown packet: ".$message));
+			$Server->wsSend($clientID, createPacket(PACKET_TYPE_ERROR, "Recieved Unknown packet: ".$message), $packet->plaintext);
 		break;
 	}
 
@@ -121,7 +129,7 @@ function wsOnMessage($clientID, $message, $messageLength, $binary) {
 	// $Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Recieved: ".$message));
 }
 
-function respondToRequest($clientID, $requestType, $version) {
+function respondToRequest($clientID, $requestType, $version, $encrypt=true) {
 	global $Server;
 	switch($requestType) {
 		case PACKET_TYPE_REQUEST_BOOTSTRAP:
@@ -137,17 +145,17 @@ function respondToRequest($clientID, $requestType, $version) {
 			$responseType = PACKET_TYPE_CSS;
 			break;
 		default:
-			$Server->log("call to respondToRequest without bad requestType of ".$requestType);
+			$Server->log("call to respondToRequest with bad requestType of ".$requestType);
 			return;
 	}
 	if(!$data) {
-		$Server->wsSend($clientID, createPacket($requestType, ""));
+		$Server->wsSend($clientID, createPacket($requestType, "", $encrypt));
 	} else if($data != NULL && $data!="") {
-		$Server->wsSend($clientID, createPacket($responseType, $data));
+		$Server->wsSend($clientID, createPacket($responseType, $data, $encrypt));
 	}
 }
 
-function respondToResponse($clientID, $type, $hash) {
+function respondToResponse($clientID, $type, $hash, $encrypt=true) {
 	global $Server;
 	switch($type) {
 		case PACKET_TYPE_BOOTSTRAP:
@@ -167,7 +175,7 @@ function respondToResponse($clientID, $type, $hash) {
 			return;
 	}
 	if ($hash != utf8_encode(hash('sha256', $data))) {
-		$Server->wsSend($clientID, createPacket($type, $data));
+		$Server->wsSend($clientID, createPacket($type, $data, $encrypt));
 	// } else {
 	// 	//TESTING CAUSE IT _WORKS!!!!_
 	// 	$Server->wsSend($clientID, createPacket(PACKET_TYPE_NORMAL, "Your hash ($hash) is the same as our hash (".utf8_encode(hash('sha256', $data)).")!!!"));
@@ -204,7 +212,8 @@ function wsOnClose($clientID, $status) {
 }
 
 function wsOnSend($clientID, &$message, $binary) {
-	encrypt($message);
+	if(!json_decode($message)->plaintext)
+		encrypt($message);
 }
 
 // start the server

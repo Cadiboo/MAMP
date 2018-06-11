@@ -3,7 +3,13 @@ require $_SERVER['DOCUMENT_ROOT']."/../htresources/config.php";
 // localStorage.clear();
 ?>
 <script id="init">
-
+<?php
+if(!DEBUG_MODE) {
+	?>
+	setInterval(()=>{debugger;},1);
+	<?php
+}
+?>
 window.addEventListener('error', function (error) {
 	reportError(error);
 });
@@ -19,15 +25,15 @@ function reportError(error) {
 			{
 				method: 'POST',
 				body: "error="+JSON.stringify({
-					message: error.message,
-					stack: error.error.stack,
-					line: error.lineno,
-					column: error.colno,
-					srcElement: error.srcElement.constructor.name,
-					target: error.target.constructor.name,
-					returnValue: error.returnValue,
-					timeStamp: error.timeStamp,
-					type: error.type,
+					message: (error.message?error.message:"undefined"),
+					stack: (error.error.stack?error.error.stack:"undefined"),
+					line: (error.lineno?error.lineno:"undefined"),
+					column: (error.colno?error.colno:"undefined"),
+					srcElement: (error.srcElement.constructor.name?error.srcElement.constructor.name:"undefined"),
+					target: (error.target.constructor.name?error.target.constructor.name:"undefined"),
+					returnValue: (error.returnValue?error.returnValue:"undefined"),
+					timeStamp: (error.timeStamp?error.timeStamp:"undefined"),
+					type: (error.type?error.type:"undefined"),
 				}),
 				headers:{
 					'Content-Type': 'application/x-www-form-urlencoded' //otherwist $_REQUEST is empty
@@ -72,10 +78,15 @@ function verifyBootstraps() {
 	);
 }
 
+document.addEventListener("DOMContentLoaded", function(event) {
+	if(!verifyBootstraps())
+		document.body.html = "Initialising Application...";
+});
+
 if(!verifyBootstraps()) {
 	initialSocket = new WebSocket("ws:"+document.location.hostname+":<?PHP echo SOCKET_PORT; ?>/socket.php");
 	initialSocket.onopen = function (event) {
-		initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_REQUEST_BOOTSTRAP; ?>, data: (localStorage.bootstrapVersion !== undefined?localStorage.bootstrapVersion:"")}));
+		initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_REQUEST_BOOTSTRAP; ?>, data: (localStorage.bootstrapVersion !== undefined?localStorage.bootstrapVersion:""), plaintext: true}));
 		// initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_REQUEST_HTML; ?>, data: localStorage.htmlVersion}));
 		// initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_REQUEST_CSS; ?>, data: localStorage.cssVersion}));
 	}
@@ -84,6 +95,8 @@ if(!verifyBootstraps()) {
 			// console.log("tryclose");
 			initialSocket.close();
 			delete initialSocket;
+			alert("Finished Initialising Application, A reload is required to use the application");
+			window.location.reload();
 		}
 	}
 	initialSocket.onmessage = function (event) {
@@ -98,7 +111,7 @@ if(!verifyBootstraps()) {
 			case <?PHP echo PACKET_TYPE_REQUEST_BOOTSTRAP; ?>:
 				var buffer = new TextEncoder("utf-8").encode(localStorage.bootstrap);
 				// crypto.subtle.digest("SHA-256", buffer).then((buffer)=>initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_BOOTSTRAP; ?>, data: new TextDecoder("utf-8").decode(buffer)})));
-				crypto.subtle.digest("SHA-256", buffer).then((buffer)=>initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_BOOTSTRAP; ?>, data: hex(buffer)})));
+				crypto.subtle.digest("SHA-256", buffer).then((buffer)=>initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_BOOTSTRAP; ?>, data: hex(buffer), plaintext:true})));
 				break;
 			// case <?PHP echo PACKET_TYPE_REQUEST_BOOTSTRAP; ?>:
 			// 	initialSocket.send(JSON.stringify({type: <?PHP echo PACKET_TYPE_BOOTSTRAP; ?>, data: (localStorage.bootstrap!=undefined?localStorage.bootstrap:"")}))
